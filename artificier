@@ -1,0 +1,226 @@
+# !/bin/sh
+
+usage(){
+    cat << EOF
+Usage : artificier command [options]
+Commands:
+    version        -- Show the version of artificier
+    help           -- Show usage
+    install        -- Install packages
+    dryinstall     -- Show what would be done on install
+EOF
+       exit 1
+}
+
+####################################
+#        --- VARIABLES ----        #
+####################################
+
+ARTIFICIER_VERSION="0.0.1"
+
+# SYSTEM PROPERTIES
+ARCH=$(uname -p)
+FREEBSD_BRANCH=$(uname -r | cut -d - -f 2)
+FREEBSD_VERSION=$(uname -r | cut -d - -f 1)
+if [ ${FREEBSD_BRANCH} == "STABLE" -o ${FREEBSD_BRANCH} == "CURRENT" ] ; then
+    FREEBSD_VERSION=$(echo ${FREEBSD_VERSION}| cut -d . -f 1)
+fi
+LOCAL_ETC=/usr/local/etc
+
+# POUDRIERE RELATED SETTINGS
+POUDRIERE_FOLDER=/usr/local/poudriere
+POUDRIERE_CONF=${LOCAL_ETC}
+MAKE_FILE=${POUDRIERE_CONF}/poudriere.d/make.conf
+DIST_FILES=/usr/ports/distfiles
+#PORTSTREE_NAME=artificier
+PORTSTREE_NAME=local
+
+# jail name cannot contain '.'
+SHORT_ARCH=$(echo $ARCH | sed "s/[a-z]//g")
+JAIL_NAME=$(echo ${FREEBSD_VERSION}${FREEBSD_BRANCH}${SHORT_ARCH} \
+            | sed  's/\.//g' | tr "[:upper:]" "[:lower:]")
+PORTSTREE_DIR=/usr/ports
+
+# PKG RELATED SETTINGS
+PKGCONF_DIR=${LOCAL_ETC}/pkg/repos
+PKG_AUTO=$(pkg query -e '%a = 0' %o)
+
+# MISC
+EDITOR=ee
+
+# LOADING CONFIG FILE (OVERWRITE DEFAULT VALUES)
+
+if [ -f ${LOCAL_ETC}/artificier.conf ] ; then
+    . ${LOCAL_ETC}/artificier.conf
+else
+    echo "Config file not found, using default values"
+fi
+
+show_artificier_version(){
+    echo "Wrapper around pkg(8) and poudriere(8)"
+    echo "Version ${ARTIFICIER_VERSION}"
+    echo "Copyright (C) 2019 Hukadan hukadan@protonmail.com"
+    exit 0
+}
+
+####################################
+#      --- COMMON FUNCTIONS ---    #
+####################################
+
+# BOOLEAN FUNCTIONS
+
+is_installed(){
+    local pkg_to_check=$1
+    [ $(echo "$PKG_AUTO" | egrep -c "${pkg_to_check}") -gt 0 ] \
+        && return 0
+    return 1
+}
+
+portstree_present(){
+    poudriere -e $POUDRIERE_CONF ports -ln |
+        grep -w "$PORTSTREE_NAME" >/dev/null \
+        && return 0
+    return 1
+}
+
+jail_present(){
+    poudriere -e $POUDRIERE_CONF jail -ln |
+        grep -w "$JAIL_NAME" >/dev/null \
+        && return 0
+    return 1
+}
+
+# BASIC FUNCTIONS
+
+# repo name should be a variable
+install_package(){
+    CMD="pkg install -r poudriere $@"
+    $CMD ||
+        { echo "Problem while installing" ; return 1 ; }
+    return 0
+}
+
+bulk_ports(){
+    # bulk build packages
+    if ! jail_present ; then
+        echo "Jail does not exist. Run 'artificier init' first"
+        return 1
+    elif ! portstree_present ; then
+        echo "Ports tree does not exist. Run 'artificier init' first"
+        return 1
+    else
+        echo "Building packages..."
+        CMD="poudriere -e $POUDRIERE_CONF \
+                          bulk -j $JAIL_NAME \
+                          -p $PORTSTREE_NAME $@"
+        $CMD
+        [ $? -gt 0 ] &&
+            echo "Some ports did not build properly. \
+                  It is expected if you use a blacklist"
+    fi
+}
+
+dry_bulk_ports(){
+    # dry bulk build packages
+    if ! jail_present ; then
+        echo "Jail does not exist. Run 'artificier init' first"
+        return 1
+    elif ! portstree_present ; then
+        echo "Ports tree does not exist. Run 'artificier init' first"
+        return 1
+    else
+        echo "Building packages..."
+        CMD="poudriere -e $POUDRIERE_CONF \
+                          bulk -n -j $JAIL_NAME \
+                          -p $PORTSTREE_NAME $@"
+        $CMD
+        [ $? -gt 0 ] &&
+            echo "Some ports did not build properly. \
+                  It is expected if you use a blacklist"
+    fi
+}
+
+# ACTIONS
+
+action_install(){
+    #jail_system_in_sync || exit 1
+
+    check_if_installed(){
+        local pkg_list_to_check=$@
+        for pkg_to_check in $pkg_list_to_check
+        do
+            is_installed $pkg_to_check || PROCEED_TO_INSTALL=YES
+        done
+        return 0
+    }
+
+    [ $# -lt 1 ] && usage
+
+    check_if_installed $@
+    [ "$PROCEED_TO_INSTALL" = "YES" ] ||
+        { echo "Package(s) already installed" ; exit 1 ; }
+
+    bulk_ports $@
+    install_package $@ ||
+        { echo "Aborting while installing packages" ; exit 1 ; }
+    exit 0
+}
+
+action_dryinstall(){
+    #jail_system_in_sync || exit 1
+
+    echo "Calculating ports that would be built. This may take a while..."
+    check_if_installed(){
+        local pkg_list_to_check=$@
+        for pkg_to_check in $pkg_list_to_check
+        do
+            is_installed $pkg_to_check || PROCEED_TO_INSTALL=YES
+        done
+        return 0
+    }
+
+    [ $# -lt 1 ] && usage
+
+    check_if_installed $@
+    [ "$PROCEED_TO_INSTALL" = "YES" ] ||
+        { echo "Package(s) already installed" ; exit 1 ; }
+
+    dry_bulk_ports $@ 2>&1 | grep -E 'Ports to|builders'
+    exit 0
+}
+
+test_function(){
+    #put here the function to test
+    echo ${JAIL_NAME}
+    exit 0
+}
+
+####################################
+#        --- DO THE JOB ---        #
+####################################
+
+CMD=$1
+shift
+case "${CMD}" in
+    install)
+        action_install $@
+        ;;
+    dryinstall)
+        action_dryinstall $@
+        ;;
+    test_function)
+        test_function $@
+        ;;
+    version)
+        show_artificier_version
+        ;;
+    help)
+        usage
+        ;;
+    *)
+        echo "Unknown command '${CMD}'"
+        usage
+        ;;
+esac
+
+
