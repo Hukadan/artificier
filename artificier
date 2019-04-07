@@ -70,13 +70,14 @@ show_artificier_version(){
 
 # BOOLEAN FUNCTIONS
 
-is_installed(){
-    local pkg_to_check=$1
-    [ $(echo "$PKG_NONAUTO" | egrep -c "${pkg_to_check}") -gt 0 ] \
-        && return 0
-    return 1
+are_installed(){
+    for pkg_to_check in $@
+        do
+           [ $(echo "$PKG_NONAUTO" | egrep -c "${pkg_to_check}") -gt 0 ] \
+               || return 1
+        done
+    return 0
 }
-
 portstree_present(){
     poudriere -e $POUDRIERE_CONF ports -ln |
         grep -w "$PORTSTREE_NAME" >/dev/null \
@@ -127,20 +128,11 @@ bulk_ports(){
 
 action_install(){
     #jail_system_in_sync || exit 1
-
-    check_if_installed(){
-        for pkg_to_check in $@
-        do
-            is_installed $pkg_to_check || PROCEED_TO_INSTALL=YES
-        done
-        return 0
-    }
-
     [ $# -lt 1 ] && usage
 
-    check_if_installed $@
-    [ "$PROCEED_TO_INSTALL" = "YES" ] ||
+    if are_installed $@ ; then
         { echo "Package(s) already installed" ; exit 1 ; }
+    fi
 
     bulk_ports $@
     install_package $@ ||
@@ -152,19 +144,12 @@ action_dryinstall(){
     #jail_system_in_sync || exit 1
 
     echo "Calculating ports that would be built. This may take a while..."
-    check_if_installed(){
-        for pkg_to_check in $@
-        do
-            is_installed $pkg_to_check || PROCEED_TO_INSTALL=YES
-        done
-        return 0
-    }
 
     [ $# -lt 1 ] && usage
 
-    check_if_installed $@
-    [ "$PROCEED_TO_INSTALL" = "YES" ] ||
+    if are_installed $@ ; then
         { echo "Package(s) already installed" ; exit 1 ; }
+    fi
 
     tobuild=$(bulk_ports $@ 2>&1 | grep -E 'Ports to' \
                                      | cut -d ] -f3 | cut -d : -f2)
