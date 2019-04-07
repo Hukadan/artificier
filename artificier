@@ -113,25 +113,9 @@ bulk_ports(){
     else
         echo "Building packages..."
         CMD="poudriere -e $POUDRIERE_CONF \
-                          bulk -j $JAIL_NAME \
-                          -p $PORTSTREE_NAME $@"
-        $CMD
-        [ $? -gt 0 ] &&
-            echo "Some ports did not build properly. \
-                  It is expected if you use a blacklist"
-    fi
-}
-
-dry_bulk_ports(){
-    # dry bulk build packages
-    if ! needed_present ; then
-        echo "Jail and/or ports tree missing. Create them first"
-        return 1
-    else
-        echo "Building packages..."
-        CMD="poudriere -e $POUDRIERE_CONF \
-                          bulk -n -j $JAIL_NAME \
-                          -p $PORTSTREE_NAME $@"
+                          bulk ${DRY_OPTION} \
+                          -j ${JAIL_NAME} \
+                          -p ${PORTSTREE_NAME} $@"
         $CMD
         [ $? -gt 0 ] &&
             echo "Some ports did not build properly. \
@@ -182,7 +166,7 @@ action_dryinstall(){
     [ "$PROCEED_TO_INSTALL" = "YES" ] ||
         { echo "Package(s) already installed" ; exit 1 ; }
 
-    tobuild=$(dry_bulk_ports $@ 2>&1 | grep -E 'Ports to' \
+    tobuild=$(bulk_ports $@ 2>&1 | grep -E 'Ports to' \
                                      | cut -d ] -f3 | cut -d : -f2)
     for port in $tobuild
     do
@@ -208,6 +192,7 @@ case "${CMD}" in
         action_install $@
         ;;
     dryinstall)
+        DRY_OPTION="-n"
         action_dryinstall $@
         ;;
     test_function)
