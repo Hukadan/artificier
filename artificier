@@ -183,7 +183,12 @@ action_dryinstall(){
     [ "$PROCEED_TO_INSTALL" = "YES" ] ||
         { echo "Package(s) already installed" ; exit 1 ; }
 
-    dry_bulk_ports $@ 2>&1 | grep -E 'Ports to|builders'
+    tobuild=$(dry_bulk_ports $@ 2>&1 | grep -E 'Ports to' \
+                                     | cut -d ] -f3 | cut -d : -f2)
+    for port in $tobuild
+    do
+        echo $port
+    done
     exit 0
 }
 
