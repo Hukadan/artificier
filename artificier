@@ -44,7 +44,7 @@ PORTSTREE_DIR=/usr/ports
 # PKG RELATED SETTINGS
 PKGCONF_DIR=${LOCAL_ETC}/pkg/repos
 REPO_NAME="poudriere"
-PKG_AUTO=$(pkg query -e '%a = 0' %o)
+PKG_NONAUTO=$(pkg query -e '%a = 0' %o)
 
 # MISC
 EDITOR=ee
@@ -72,7 +72,7 @@ show_artificier_version(){
 
 is_installed(){
     local pkg_to_check=$1
-    [ $(echo "$PKG_AUTO" | egrep -c "${pkg_to_check}") -gt 0 ] \
+    [ $(echo "$PKG_NONAUTO" | egrep -c "${pkg_to_check}") -gt 0 ] \
         && return 0
     return 1
 }
@@ -91,6 +91,11 @@ jail_present(){
     return 1
 }
 
+needed_present(){
+    jail_present && portstree_present && return 0
+    return 1
+}
+
 # BASIC FUNCTIONS
 
 install_package(){
@@ -102,11 +107,8 @@ install_package(){
 
 bulk_ports(){
     # bulk build packages
-    if ! jail_present ; then
-        echo "Jail does not exist. Run 'artificier init' first"
-        return 1
-    elif ! portstree_present ; then
-        echo "Ports tree does not exist. Run 'artificier init' first"
+    if ! needed_present ; then
+        echo "Jail and/or ports tree missing. Create them first"
         return 1
     else
         echo "Building packages..."
@@ -122,11 +124,8 @@ bulk_ports(){
 
 dry_bulk_ports(){
     # dry bulk build packages
-    if ! jail_present ; then
-        echo "Jail does not exist. Run 'artificier init' first"
-        return 1
-    elif ! portstree_present ; then
-        echo "Ports tree does not exist. Run 'artificier init' first"
+    if ! needed_present ; then
+        echo "Jail and/or ports tree missing. Create them first"
         return 1
     else
         echo "Building packages..."
