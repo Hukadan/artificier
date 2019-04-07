@@ -143,14 +143,13 @@ action_install(){
 action_dryinstall(){
     #jail_system_in_sync || exit 1
 
-    echo "Calculating ports that would be built. This may take a while..."
-
     [ $# -lt 1 ] && usage
 
     if are_installed $@ ; then
         { echo "Package(s) already installed" ; exit 1 ; }
     fi
 
+    echo "Calculating ports that would be built. This may take a while..."
     tobuild=$(bulk_ports $@ 2>&1 | grep -E 'Ports to' \
                                      | cut -d ] -f3 | cut -d : -f2)
     for port in $tobuild
