@@ -146,8 +146,7 @@ action_install(){
     #jail_system_in_sync || exit 1
 
     check_if_installed(){
-        local pkg_list_to_check=$@
-        for pkg_to_check in $pkg_list_to_check
+        for pkg_to_check in $@
         do
             is_installed $pkg_to_check || PROCEED_TO_INSTALL=YES
         done
@@ -171,8 +170,7 @@ action_dryinstall(){
 
     echo "Calculating ports that would be built. This may take a while..."
     check_if_installed(){
-        local pkg_list_to_check=$@
-        for pkg_to_check in $pkg_list_to_check
+        for pkg_to_check in $@
         do
             is_installed $pkg_to_check || PROCEED_TO_INSTALL=YES
         done
