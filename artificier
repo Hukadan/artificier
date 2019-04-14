@@ -81,6 +81,7 @@ are_installed(){
         done
     return 0
 }
+
 portstree_present(){
     poudriere -e $POUDRIERE_CONF ports -ln |
         grep -w "$PORTSTREE_NAME" >/dev/null \
@@ -176,7 +177,6 @@ action_build(){
     exit 0
 }
 
-
 action_status-build(){
 
     echo "Calculating ports that would be built. This may take a while..."
@@ -188,7 +188,6 @@ action_status-build(){
     done
     exit 0
 }
-
 
 action_upgrade(){
     bulk_ports ${PKG_NONAUTO} || exit 1
@@ -240,5 +239,3 @@ case "${CMD}" in
         usage
         ;;
 esac
-
-
