@@ -7,6 +7,7 @@ Commands:
     version        -- Show the version of artificier
     help           -- Show usage
     install        -- Install packages
+    build          -- Build repository
     dryinstall     -- Show what would be done on install
 EOF
        exit 1
@@ -159,6 +160,11 @@ action_dryinstall(){
     exit 0
 }
 
+action_build(){
+    bulk_ports ${PKG_NONAUTO} || exit 1
+    exit 0
+}
+
 test_function(){
     #put here the function to test
     echo ${JAIL_NAME}
@@ -174,6 +180,9 @@ shift
 case "${CMD}" in
     install)
         action_install $@
+        ;;
+    build)
+        action_build
         ;;
     dryinstall)
         DRY_OPTION="-n"
