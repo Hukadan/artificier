@@ -121,8 +121,10 @@ bulk_ports(){
         $CMD
         [ $? -gt 0 ] &&
             echo "Some ports did not build properly. \
-                  It is expected if you use a blacklist"
+                  It is expected if you use a blacklist" &&
+                  return 1
     fi
+    return 0
 }
 
 # ACTIONS
