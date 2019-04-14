@@ -7,6 +7,7 @@ Commands:
     version        -- Show the version of artificier
     help           -- Show usage
     install        -- Install packages
+    upgrade        -- Upgrade packages
     build          -- Build repository
     dryinstall     -- Show what would be done on install
 EOF
@@ -107,6 +108,13 @@ install_package(){
     return 0
 }
 
+upgrade_packages(){
+    CMD="pkg upgrade -r ${REPO_NAME}"
+    $CMD ||
+        { echo "Prolem while upgrading" ; return 1 ; }
+    return 0
+}
+
 bulk_ports(){
     # bulk build packages
     if ! needed_present ; then
@@ -167,6 +175,12 @@ action_build(){
     exit 0
 }
 
+action_upgrade(){
+    bulk_ports ${PKG_NONAUTO} || exit 1
+    upgrade_packages || exit 1
+    exit 0
+}
+
 test_function(){
     #put here the function to test
     echo ${JAIL_NAME}
@@ -185,6 +199,9 @@ case "${CMD}" in
         ;;
     build)
         action_build
+        ;;
+    upgrade)
+        action_upgrade
         ;;
     dryinstall)
         DRY_OPTION="-n"
