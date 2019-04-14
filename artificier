@@ -9,7 +9,7 @@ Commands:
     install        -- Install packages
     upgrade        -- Upgrade packages
     build          -- Build repository
-    dryinstall     -- Show what would be done on install
+    status-install     -- Show what would be done on install
 EOF
        exit 1
 }
@@ -151,7 +151,7 @@ action_install(){
     exit 0
 }
 
-action_dryinstall(){
+action_status-install(){
     #jail_system_in_sync || exit 1
 
     [ $# -lt 1 ] && usage
@@ -174,6 +174,27 @@ action_build(){
     bulk_ports ${PKG_NONAUTO} || exit 1
     exit 0
 }
+
+
+action_status-build(){
+    #jail_system_in_sync || exit 1
+
+    [ $# -lt 1 ] && usage
+
+    if are_installed $@ ; then
+        { echo "Package(s) already installed" ; exit 1 ; }
+    fi
+
+    echo "Calculating ports that would be built. This may take a while..."
+    tobuild=$(bulk_ports ${PKG_NONAUTO} 2>&1 | grep -E 'Ports to' \
+                                     | cut -d ] -f3 | cut -d : -f2)
+    for port in $tobuild
+    do
+        echo $port
+    done
+    exit 0
+}
+
 
 action_upgrade(){
     bulk_ports ${PKG_NONAUTO} || exit 1
@@ -203,9 +224,13 @@ case "${CMD}" in
     upgrade)
         action_upgrade
         ;;
-    dryinstall)
+    status-install)
         DRY_OPTION="-n"
         action_dryinstall $@
+        ;;
+    status-build)
+        DRY_OPTION="-n"
+        action_drybuild
         ;;
     test_function)
         test_function $@
