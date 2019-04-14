@@ -4,12 +4,13 @@ usage(){
     cat << EOF
 Usage : artificier command [options]
 Commands:
-    version        -- Show the version of artificier
-    help           -- Show usage
-    install        -- Install packages
-    upgrade        -- Upgrade packages
-    build          -- Build repository
-    status-install     -- Show what would be done on install
+    version         -- Show the version of artificier
+    help            -- Show usage
+    install         -- Install packages
+    upgrade         -- Upgrade packages
+    build           -- Build repository
+    status-install  -- Show what would be done on install
+    status-build    -- Show what would be done on build
 EOF
        exit 1
 }
@@ -177,13 +178,6 @@ action_build(){
 
 
 action_status-build(){
-    #jail_system_in_sync || exit 1
-
-    [ $# -lt 1 ] && usage
-
-    if are_installed $@ ; then
-        { echo "Package(s) already installed" ; exit 1 ; }
-    fi
 
     echo "Calculating ports that would be built. This may take a while..."
     tobuild=$(bulk_ports ${PKG_NONAUTO} 2>&1 | grep -E 'Ports to' \
@@ -226,11 +220,11 @@ case "${CMD}" in
         ;;
     status-install)
         DRY_OPTION="-n"
-        action_dryinstall $@
+        action_status-install $@
         ;;
     status-build)
         DRY_OPTION="-n"
-        action_drybuild
+        action_status-build
         ;;
     test_function)
         test_function $@
