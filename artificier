@@ -2,6 +2,7 @@
 
 # just to be sure
 set -e 
+set -u
 
 usage(){
     cat << EOF
