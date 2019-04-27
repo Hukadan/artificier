@@ -75,6 +75,22 @@ show_artificier_version(){
 #      --- COMMON FUNCTIONS ---    #
 ####################################
 
+# Error handling
+
+check_errs(){
+    if [ "${1}" -ne 0 ]; then
+        echo "ERROR ${1} : ${2}
+        return ${1}
+    fi
+    return 0
+}
+
+exit_on_fail(){
+     if [ "${1}" -ne 0 ]
+         exit ${1}
+     fi
+}
+
 # BOOLEAN FUNCTIONS
 
 are_installed(){
@@ -109,16 +125,16 @@ needed_present(){
 
 install_package(){
     CMD="pkg install -r ${REPO_NAME} $@"
-    $CMD ||
-        { echo "Problem while installing" ; return 1 ; }
-    return 0
+    $CMD
+    check_errs $? "Problem while installing"
+    return $?
 }
 
 upgrade_packages(){
     CMD="pkg upgrade -r ${REPO_NAME}"
-    $CMD ||
-        { echo "Prolem while upgrading" ; return 1 ; }
-    return 0
+    $CMD
+    check_errs $? "Prolem while upgrading"
+    return $?
 }
 
 bulk_ports(){
@@ -133,18 +149,15 @@ bulk_ports(){
                           -j ${JAIL_NAME} \
                           -p ${PORTSTREE_NAME} $@"
         $CMD
-        [ $? -gt 0 ] &&
-            echo "Some ports did not build properly. \
-                  It is expected if you use a blacklist" &&
-                  return 1
+        check_errs $? "Some ports failed to build"
+        return $?
     fi
-    return 0
 }
 
 # ACTIONS
 
 action_install(){
-    #jail_system_in_sync || exit 1
+
     [ $# -lt 1 ] && usage
 
     if are_installed $@ ; then
@@ -152,13 +165,17 @@ action_install(){
     fi
 
     bulk_ports $@
-    install_package $@ ||
-        { echo "Aborting while installing packages" ; exit 1 ; }
+    check_errs $? "Something went wrong while building ports"
+    exit_on_fail $?
+
+    install_package $@
+    check_errs $? "Something went wrong while installing packages"
+    exit_on_fail $?
+
     exit 0
 }
 
 action_status-install(){
-    #jail_system_in_sync || exit 1
 
     [ $# -lt 1 ] && usage
 
@@ -177,7 +194,11 @@ action_status-install(){
 }
 
 action_build(){
-    bulk_ports ${PKG_NONAUTO} || exit 1
+
+    bulk_ports ${PKG_NONAUTO}
+    check_errs $? "Something went wrong while building ports"
+    exit_on_fail $?
+
     exit 0
 }
 
@@ -194,9 +215,16 @@ action_status-build(){
 }
 
 action_upgrade(){
-    bulk_ports ${PKG_NONAUTO} || exit 1
-    upgrade_packages || exit 1
-    exit 0
+
+    bulk_ports ${PKG_NONAUTO}
+    check_errs $? "Something went wrong while building ports"
+    exit_on_fail $?
+
+   upgrade_packages
+   check_errs $? "Something went wrong while upgrading package"
+   exit_on_fail $?
+
+   exit 0
 }
 
 test_function(){
