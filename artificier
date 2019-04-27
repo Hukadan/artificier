@@ -1,5 +1,8 @@
 # !/bin/sh
 
+# just to be sure
+set -e 
+
 usage(){
     cat << EOF
 Usage : artificier command [options]
