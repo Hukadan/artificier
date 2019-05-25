@@ -55,6 +55,7 @@ PKG_NONAUTO=$(pkg query -e '%a = 0' %o)
 
 # MISC
 EDITOR=ee
+DRY_OPTION=""
 
 # LOADING CONFIG FILE (OVERWRITE DEFAULT VALUES)
 
@@ -78,15 +79,15 @@ show_artificier_version(){
 # Error handling
 
 check_errs(){
-    if [ "${1}" -ne 0 ]; then
-        echo "ERROR ${1} : ${2}
+    if [ "${1}" -ne 0 ] ; then
+        echo "ERROR ${1} : ${2}"
         return ${1}
     fi
     return 0
 }
 
 exit_on_fail(){
-     if [ "${1}" -ne 0 ]
+     if [ "${1}" -ne 0 ] ; then
          exit ${1}
      fi
 }
@@ -95,10 +96,10 @@ exit_on_fail(){
 
 are_installed(){
     for pkg_to_check in $@
-        do
-           [ $(echo "$PKG_NONAUTO" | egrep -c "${pkg_to_check}") -gt 0 ] \
+    do
+        [ $(echo "$PKG_NONAUTO" | egrep -c "${pkg_to_check}") -gt 0 ] \
                || return 1
-        done
+    done
     return 0
 }
 
@@ -227,12 +228,6 @@ action_upgrade(){
    exit 0
 }
 
-test_function(){
-    #put here the function to test
-    echo ${JAIL_NAME}
-    exit 0
-}
-
 ####################################
 #        --- DO THE JOB ---        #
 ####################################
@@ -256,9 +251,6 @@ case "${CMD}" in
     status-build)
         DRY_OPTION="-n"
         action_status-build
-        ;;
-    test_function)
-        test_function $@
         ;;
     version)
         show_artificier_version
